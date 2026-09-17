@@ -1,0 +1,43 @@
+services:
+
+  postgres:
+    image: postgres:16
+    container_name: ai-coding-postgres
+
+    environment:
+      POSTGRES_DB: ai_coding_assistant
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+    ports:
+      - "5433:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+
+  redis:
+    image: redis:7
+    container_name: ai-coding-redis
+
+    ports:
+      - "6379:6379"
+
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: ai-coding-qdrant
+
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+
+volumes:
+
+  postgres_data:
+
+  qdrant_data:

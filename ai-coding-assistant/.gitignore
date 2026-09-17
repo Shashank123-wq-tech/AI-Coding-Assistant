@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+*.egg-info/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+
+# Data
+data/index/*
+data/cache/*
+data/repositories/*
+
+!data/index/.gitkeep
+!data/cache/.gitkeep
+!data/repositories/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# Docker
+docker-compose.override.yml
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+
+# Secrets
+*.pem
+*.key
+secrets/
+
+# OS
+.DS_Store
+Thumbs.db
