@@ -11,11 +11,12 @@ class RepositoryManager:
     def __init__(self):
         project_root = Path(__file__).resolve().parents[3]
 
-        
+        self.project_root = project_root
+
         self.storage_path = (
-                project_root
-                / settings.REPOSITORY_STORAGE_PATH
-            ).resolve()
+            project_root
+            / settings.REPOSITORY_STORAGE_PATH
+        ).resolve()
 
         self.storage_path.mkdir(
             parents=True,
@@ -33,7 +34,6 @@ class RepositoryManager:
             return False
 
         path = parsed.path.strip("/")
-
         parts = path.split("/")
 
         if len(parts) != 2:
@@ -114,7 +114,43 @@ class RepositoryManager:
 
         return repository_name, str(destination)
 
+    @staticmethod
+    def _is_generated_or_ignored_path(relative_path: str) -> bool:
+        path = Path(relative_path)
 
+        ignored_directories = {
+            "__pycache__",
+            ".pytest_cache",
+            ".mypy_cache",
+            ".ruff_cache",
+            ".tox",
+            ".venv",
+            "venv",
+            "node_modules",
+        }
+
+        ignored_extensions = {
+            ".pyc",
+            ".pyo",
+        }
+
+        path_parts = {
+            part.lower()
+            for part in path.parts
+        }
+
+        ignored_directory_names = {
+            directory.lower()
+            for directory in ignored_directories
+        }
+
+        if path_parts & ignored_directory_names:
+            return True
+
+        if path.suffix.lower() in ignored_extensions:
+            return True
+
+        return False
 
     def diff(self, repository_path: str) -> dict:
         """
@@ -123,12 +159,28 @@ class RepositoryManager:
         Includes:
         - tracked modified files
         - tracked deleted files
-        - untracked files
+        - relevant untracked source files
+
+        Excludes generated artifacts such as:
+        - __pycache__
+        - .pyc / .pyo
+        - pytest/mypy/ruff caches
+        - virtual environments
+        - node_modules
 
         This method is read-only and never stages or modifies files.
         """
 
-        repository_root = Path(repository_path).resolve()
+        backend_root = Path(__file__).resolve().parents[2]
+
+        repository_root = Path(repository_path)
+
+        if not repository_root.is_absolute():
+            repository_root = (
+                backend_root / repository_root
+            )
+
+        repository_root = repository_root.resolve()
 
         if not repository_root.exists():
             raise FileNotFoundError(
@@ -140,22 +192,60 @@ class RepositoryManager:
                 f"Repository path is not a directory: {repository_root}"
             )
 
-        git_directory = repository_root / ".git"
-
-        if not git_directory.exists():
-            raise ValueError(
-                "The specified path is not a Git repository."
-            )
-
         try:
-            tracked_result = subprocess.run(
+            git_check = subprocess.run(
                 [
                     "git",
                     "-C",
                     str(repository_root),
-                    "diff",
-                    "--no-ext-diff",
+                    "rev-parse",
+                    "--is-inside-work-tree",
                 ],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+
+        except subprocess.TimeoutExpired:
+            raise RuntimeError(
+                "Git repository validation timed out."
+            )
+
+        if git_check.returncode != 0:
+            raise ValueError(
+                "The specified path is not a Git repository."
+            )
+
+        if git_check.stdout.strip().lower() != "true":
+            raise ValueError(
+                "The specified path is not a Git repository."
+            )
+
+        diff_parts = []
+
+        tracked_command = [
+            "git",
+            "-C",
+            str(repository_root),
+            "diff",
+            "--no-ext-diff",
+            "--",
+            ".",
+            ":(exclude)**/__pycache__/**",
+            ":(exclude)**/*.pyc",
+            ":(exclude)**/*.pyo",
+            ":(exclude).pytest_cache/**",
+            ":(exclude).mypy_cache/**",
+            ":(exclude).ruff_cache/**",
+            ":(exclude).tox/**",
+            ":(exclude).venv/**",
+            ":(exclude)venv/**",
+            ":(exclude)node_modules/**",
+        ]
+
+        try:
+            tracked_result = subprocess.run(
+                tracked_command,
                 capture_output=True,
                 text=True,
                 timeout=60,
@@ -171,8 +261,6 @@ class RepositoryManager:
                 tracked_result.stderr.strip()
                 or "Git diff failed."
             )
-
-        diff_parts = []
 
         if tracked_result.stdout.strip():
             diff_parts.append(
@@ -212,6 +300,11 @@ class RepositoryManager:
         ]
 
         for relative_path in untracked_files:
+            if self._is_generated_or_ignored_path(
+                relative_path
+            ):
+                continue
+
             file_path = repository_root / relative_path
 
             if not file_path.is_file():
@@ -222,6 +315,8 @@ class RepositoryManager:
                     encoding="utf-8"
                 )
             except UnicodeDecodeError:
+                continue
+            except OSError:
                 continue
 
             lines = content.splitlines()
@@ -243,11 +338,13 @@ class RepositoryManager:
             )
 
         combined_diff = "\n".join(
-            part for part in diff_parts if part
+            part
+            for part in diff_parts
+            if part
         )
 
         return {
             "repository_path": str(repository_root),
             "changed": bool(combined_diff.strip()),
             "diff": combined_diff,
-        }    
+        }
