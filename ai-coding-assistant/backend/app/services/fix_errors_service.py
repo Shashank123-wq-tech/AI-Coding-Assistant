@@ -874,10 +874,7 @@ class FixErrorsService:
             # 4.18 UNEXPECTED FILE CHANGED
             # =================================================
             
-            print(
-              "DEBUG changed_files_validation:",
-               changed_files_validation,
-            )
+            
 
             if not changed_files_validation.get(
                 "valid",

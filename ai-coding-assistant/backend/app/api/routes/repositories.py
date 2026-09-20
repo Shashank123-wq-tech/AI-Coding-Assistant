@@ -23,6 +23,7 @@ from app.schemas.repository import FixErrorsRequest, FixErrorsResponse
 from app.services.fix_errors_service import FixErrorsService
 from app.services.review_service import ReviewService
 from app.schemas.review import CodeReviewResponse
+from app.tools.file_tools import FileTools
 
 router = APIRouter(
     prefix="/repositories",
@@ -427,6 +428,74 @@ def coding_agent_analysis(
             status_code=500,
             detail=f"Coding agent analysis failed: {exc}",
         ) 
+        
+@router.get("/{repository_id}/file")
+def read_repository_file(
+    repository_id: int,
+    file_path: str,
+    db: Session = Depends(get_db),
+):
+    """
+    Read a source file from the selected repository.
+
+    The file path is validated by FileTools so files outside
+    the repository cannot be accessed.
+    """
+
+    repository = (
+        db.query(Repository)
+        .filter(
+            Repository.id == repository_id
+        )
+        .first()
+    )
+
+    if repository is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Repository not found.",
+        )
+
+    if not file_path.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="File path cannot be empty.",
+        )
+
+    try:
+        file_tools = FileTools(
+            repository.local_path
+        )
+
+        return {
+            "repository_id": repository_id,
+            **file_tools.read_file(file_path),
+        }
+
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=404,
+            detail=str(exc),
+        )
+
+    except PermissionError as exc:
+        raise HTTPException(
+            status_code=403,
+            detail=str(exc),
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        )
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"File read failed: {str(exc)}",
+        )        
+        
 
 @router.post("/{repository_id}/agent/patch")
 def generate_repository_patch(
