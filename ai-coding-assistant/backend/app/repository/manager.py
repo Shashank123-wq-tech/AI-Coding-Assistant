@@ -228,6 +228,7 @@ class RepositoryManager:
             "-C",
             str(repository_root),
             "diff",
+            "--relative",
             "--no-ext-diff",
             "--",
             ".",

@@ -7,6 +7,7 @@ import CodeSearchPanel from "../components/search/CodeSearchPanel";
 import AgentPanel from "../components/agent/AgentPanel";
 import PatchPanel from "../components/agent/PatchPanel";
 import TestPanel from "../components/tests/TestPanel";
+import ReviewPanel from "../components/review/ReviewPanel";
 import {
     getRepositories,
     Repository,
@@ -294,6 +295,11 @@ export default function Home() {
                     </section>
                     <section style={{ marginBottom: "16px" }}>
                         <TestPanel
+                            repositoryId={selectedRepositoryId}
+                        />
+                    </section>
+                    <section style={{ marginBottom: "16px" }}>
+                        <ReviewPanel
                             repositoryId={selectedRepositoryId}
                         />
                     </section>
