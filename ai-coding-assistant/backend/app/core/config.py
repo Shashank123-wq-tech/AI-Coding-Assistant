@@ -3,16 +3,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     APP_NAME: str = "AI Coding Assistant"
-    ENVIRONMENT: str = "development"
-    DEBUG: bool = True
+    ENVIRONMENT: str = "production"
+    DEBUG: bool = False
 
     BACKEND_HOST: str = "0.0.0.0"
     BACKEND_PORT: int = 8000
 
     DATABASE_URL: str = (
-        "postgresql+psycopg2://postgres:postgres@localhost:5433/"
-        "ai_coding_assistant"
-    )
+    "postgresql+psycopg://postgres:postgres@localhost:5433/"
+    "ai_coding_assistant"
+)
 
     REDIS_URL: str = "redis://localhost:6379/0"
 
@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     SANDBOX_NETWORK_DISABLED: bool = True
 
     GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
 
     model_config = SettingsConfigDict(
         env_file=".env",
