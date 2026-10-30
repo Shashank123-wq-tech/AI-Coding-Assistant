@@ -1,4 +1,4 @@
-# AI Coding Assistant (IN Progress)
+# AI Coding Assistant(IN Progress)
 
 <p align="center">
   <strong>Repository-Aware AI for Understanding, Debugging, Modifying, and Validating Code</strong>
